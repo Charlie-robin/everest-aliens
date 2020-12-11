@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Hostile Aliens</title>
+    <style type="text/css">
+      button {
+        grid-column: 1/-1;
+        justify-self: center;
+        min-width: 100px;
+        margin: 10px;
+      }
+      #motherShip,
+      .win {
+        grid-column: 1/-1;
+        min-width: 500px;
+        text-align: center;
+      }
+      p {
+        background-color: #fff76a;
+        justify-self: center;
+        padding: 10px;
+        text-transform: uppercase;
+        border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+      span {
+        position: absolute;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background-color: #ff4646;
+        opacity: 0.8;
+      }
+      .hit {
+        animation: hurt 1s linear;
+      }
+      @keyframes hurt {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="gameboard" style="display: grid; grid-template-columns: repeat(5, 1fr); padding: 10px"></main>
+
+    <script>
+      class ProtoShip {
+        constructor(type, hitPoints, damage) {
+          this.type = type;
+          this.hitPoints = hitPoints;
+          this.damage = damage;
+          this.beenHit = false;
+          this.startHitpoints = hitPoints;
+        }
+
+        takeDamage() {
+          this.hitPoints -= this.damage;
+          this.beenHit = true;
+        }
+
+        renderShip() {
+          const percent = `${(this.hitPoints / this.startHitpoints) * 100}%`;
+          const addClass = this.beenHit ? "hit" : null;
+          const html = `
+            <p id='${this.type}' class="${addClass}" >${this.type}
+              <span style="width: ${percent};"></span>
+            </p>`;
+
+          this.beenHit ? (this.beenHit = false) : null;
+          return this.hitPoints > 0 ? html : null;
+        }
+      }
+
+      class BattleFleet {
+        constructor(fleet = [], gameBoard = []) {
+          this.fleet = fleet;
+          this.gameBoard = gameBoard;
+          this.motherShip = new ProtoShip("motherShip", 100, 7);
+        }
+
+        shipBuilder(type, numNeeded) {
+          const shipType = type === "defence" ? ["defence", 80, 10] : ["attack", 45, 12];
+          for (let index = 0; index < numNeeded; index++) {
+            this.fleet.push(new ProtoShip(...shipType));
+          }
+        }
+
+        generatefleet() {
+          this.fleet.push(this.motherShip);
+          this.shipBuilder("defence", 5);
+          this.shipBuilder("attack", 8);
+        }
+
+        updateFleet() {
+          if (this.motherShip.hitPoints <= 0) {
+            this.fleet = [];
+          } else {
+            const filteredFleet = this.fleet.filter((element) => element.hitPoints > 0);
+            this.fleet = filteredFleet;
+          }
+        }
+
+        generateControls() {
+          return `
+                <button ${
+                  this.motherShip.hitPoints <= 0 ? "disabled" : null
+                } onclick="battleFleet.fireButton()">Fire</button>
+                <button onclick="newGame();">New Game</button>`;
+        }
+
+        generateHtml() {
+          document.getElementById("gameboard").innerHTML = "";
+          this.updateFleet();
+          if (this.fleet.length) this.gameBoard = this.fleet.map((element) => element.renderShip());
+          else this.gameBoard = [`<p class="win">Winner</p>`];
+          this.gameBoard.push(this.generateControls());
+          document.getElementById("gameboard").innerHTML = this.gameBoard.join("");
+        }
+
+        shipTakeDamage() {
+          const randomNumber = Math.floor(Math.random() * this.fleet.length);
+          this.fleet[randomNumber].takeDamage();
+        }
+
+        fireButton() {
+          this.shipTakeDamage();
+          this.generateHtml();
+        }
+      }
+
+      let battleFleet;
+      const newGame = () => {
+        battleFleet = new BattleFleet();
+        battleFleet.generatefleet();
+        battleFleet.generateHtml();
+      };
+
+      newGame();
+    </script>
+  </body>
+</html>
